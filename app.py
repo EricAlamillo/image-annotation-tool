@@ -1,12 +1,13 @@
 import streamlit as st
 import pandas as pd
 import json
-import os
 from PIL import Image
+from io import BytesIO
+import os
 
 def main():
-    st.set_page_config(page_title="Path-Based Annotation Tool", layout="wide")
-    st.title("🖼️ Annotate Images from File Paths")
+    st.set_page_config(page_title="Multi-File Annotation Tool", layout="wide")
+    st.title("🖼️ Annotate JSON-defined Prompts and Uploaded Images")
 
     questions = [
         "Are fine details of the generated portion well defined?",
@@ -17,17 +18,18 @@ def main():
         "Is the image free from unnatural blending or merging of objects (e.g., extra limbs, distorted faces, impossible shapes)?",
     ]
 
-    json_file = st.file_uploader("Upload a JSON file with image paths and prompts", type=["json"])
+    json_file = st.file_uploader("Upload JSON file with prompts and image names", type=["json"])
+    image_files = st.file_uploader("Upload all images used in the JSON file", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-    if json_file:
+    if json_file and image_files:
         try:
-            image_prompt_pairs = json.load(json_file)
-
-            if not isinstance(image_prompt_pairs, list) or not all(
-                "image_path" in item and "prompt" in item for item in image_prompt_pairs
-            ):
-                st.error("❌ Invalid JSON format. Expected a list of {'image_path': ..., 'prompt': ...} objects.")
+            data = json.load(json_file)
+            if not isinstance(data, list) or not all("image_path" in d and "prompt" in d for d in data):
+                st.error("JSON format invalid. Each entry must have 'image_path' and 'prompt'.")
                 return
+
+            # Create a lookup of uploaded image files by name
+            image_lookup = {img.name: img for img in image_files}
 
             if "index" not in st.session_state:
                 st.session_state.index = 0
@@ -35,17 +37,16 @@ def main():
                 st.session_state.annotations = []
 
             index = st.session_state.index
-            current = image_prompt_pairs[index]
+            entry = data[index]
+            image_name = os.path.basename(entry["image_path"])  # Strip path for matching
 
-            # Load and display image
-            try:
-                image = Image.open(current["image_path"])
-                st.image(image, caption=f"Image {index + 1} of {len(image_prompt_pairs)}", use_column_width=True)
-            except FileNotFoundError:
-                st.error(f"Image not found: {current['image_path']}")
+            if image_name not in image_lookup:
+                st.error(f"Image '{image_name}' not found in uploaded images.")
                 return
 
-            st.markdown(f"**Prompt:** {current['prompt']}")
+            image = Image.open(image_lookup[image_name])
+            st.image(image, caption=f"{image_name} ({index + 1} of {len(data)})", use_column_width=True)
+            st.markdown(f"**Prompt:** {entry['prompt']}")
 
             responses = {}
             for q in questions:
@@ -53,59 +54,47 @@ def main():
 
             if st.button("Save and Next"):
                 record = {
-                    "image_path": current["image_path"],
-                    "prompt": current["prompt"],
+                    "image_name": image_name,
+                    "prompt": entry["prompt"],
                     "responses": responses
                 }
-
                 st.session_state.annotations.append(record)
 
-                if index < len(image_prompt_pairs) - 1:
+                if index < len(data) - 1:
                     st.session_state.index += 1
                     st.rerun()
-                    return
                 else:
-                    output_file = "annotations.json"
-                    if os.path.exists(output_file):
-                        with open(output_file, "r") as f:
-                            data = json.load(f)
-                    else:
-                        data = []
-
-                    data.extend(st.session_state.annotations)
-                    with open(output_file, "w") as f:
-                        json.dump(data, f, indent=2)
-
-                    st.success("✅ All annotations saved!")
+                    with open("annotations.json", "w") as f:
+                        json.dump(st.session_state.annotations, f, indent=2)
+                    st.success("✅ All annotations saved.")
                     st.session_state.index = 0
                     st.session_state.annotations = []
 
         except Exception as e:
-            st.error(f"Failed to read JSON: {e}")
+            st.error(f"Failed to process inputs: {e}")
 
-    # CSV download section
+    # CSV download
     if os.path.exists("annotations.json"):
         with open("annotations.json", "r") as f:
-            data = json.load(f)
+            records = json.load(f)
 
         rows = []
-        for entry in data:
+        for r in records:
             flat = {
-                "image_path": entry["image_path"],
-                "prompt": entry["prompt"]
+                "image_name": r["image_name"],
+                "prompt": r["prompt"]
             }
-            flat.update(entry["responses"])
+            flat.update(r["responses"])
             rows.append(flat)
 
         df = pd.DataFrame(rows)
-
-        st.markdown("### 📥 Download Your Annotations")
         csv = df.to_csv(index=False).encode("utf-8")
+
         st.download_button(
-            label="Download CSV",
+            label="📥 Download CSV",
             data=csv,
             file_name="annotations.csv",
-            mime="text/csv",
+            mime="text/csv"
         )
 
 if __name__ == "__main__":
