@@ -34,7 +34,7 @@ if uploaded_images:
 
     responses = {}
     for q in questions:
-        responses[q] = st.radio(q, ["Yes", "No", "Unclear"], key=f"{q}_{index}")
+        responses[q] = st.radio(q, ["1", "2", "3","4","5"], key=f"{q}_{index}")
 
     if st.button("Save and Next"):
         record = {
