@@ -3,15 +3,11 @@ import pandas as pd
 import os
 import json
 
-st.set_page_config(page_title="Annotation Tool", layout="wide")
-
-st.title("🖼️ Image Annotation Tool")
-
-uploaded_image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
-prompt = st.text_input("Enter the text prompt for this image")
+st.set_page_config(page_title="Mudlti-Image Annotation Tool", layout="wide")
+st.title("🖼️ Multi-Image Annotation Tool")
 
 questions = [
-    "Are fine details of the generated portion well defined test this?",
+    "Are fine details of the generated portion well defined?",
     "Is the overall composition coherent and consistent with the prompt?",
     "Are the colors natural and well-balanced, without unnatural saturation or color bleeding",
     "Are there any objects in the image that seem out of place?",
@@ -19,47 +15,68 @@ questions = [
     "Is the image free from unnatural blending or merging of objects (e.g., extra limbs, distorted faces, impossible shapes)?",
 ]
 
-responses = {}
+uploaded_images = st.file_uploader(
+    "Upload images", type=["jpg", "jpeg", "png"], accept_multiple_files=True
+)
 
-if uploaded_image and prompt:
-    st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
-    st.markdown(f"**Prompt:** {prompt}")
+if uploaded_images:
+    # Initialize session state to track index and annotations
+    if "index" not in st.session_state:
+        st.session_state.index = 0
+    if "annotations" not in st.session_state:
+        st.session_state.annotations = []
 
-    st.markdown("### Answer the following questions:")
+    index = st.session_state.index
+    image = uploaded_images[index]
+
+    st.image(image, caption=f"Image {index + 1} of {len(uploaded_images)}", use_column_width=True)
+    prompt = st.text_input("Enter a prompt for this image", key=f"prompt_{index}")
+
+    responses = {}
     for q in questions:
-        response = st.radio(q, ["1", "2", "3","4","5"], key=q)
-        responses[q] = response
+        responses[q] = st.radio(q, ["Yes", "No", "Unclear"], key=f"{q}_{index}")
 
-    if st.button("Save Annotation"):
+    if st.button("Save and Next"):
         record = {
             "prompt": prompt,
-            "image_name": uploaded_image.name,
+            "image_name": image.name,
             "responses": responses
         }
 
-        # Save to a JSON file
-        output_file = "annotations.json"
-        if os.path.exists(output_file):
-            with open(output_file, "r") as f:
-                data = json.load(f)
+        # Save current annotation in session state
+        st.session_state.annotations.append(record)
+
+        # Move to next image or finish
+        if index < len(uploaded_images) - 1:
+            st.session_state.index += 1
+            st.experimental_rerun()  # Refresh UI to show next image
         else:
-            data = []
+            # Save all annotations to JSON file
+            output_file = "annotations.json"
+            if os.path.exists(output_file):
+                with open(output_file, "r") as f:
+                    data = json.load(f)
+            else:
+                data = []
 
-        data.append(record)
+            data.extend(st.session_state.annotations)
+            with open(output_file, "w") as f:
+                json.dump(data, f, indent=2)
 
-        with open(output_file, "w") as f:
-            json.dump(data, f, indent=2)
+            st.success("✅ All annotations saved!")
 
-        st.success("✅ Annotation saved successfully!")
+            # Reset state to start over or upload new images
+            st.session_state.index = 0
+            st.session_state.annotations = []
+else:
+    st.info("Please upload one or more images to start annotating.")
 
-# 👇 Moved this block outside the above `if uploaded_image and prompt:` so it's always available
-
-# Load and convert to CSV for download
+# Download CSV section (same as before)
 if os.path.exists("annotations.json"):
     with open("annotations.json", "r") as f:
         data = json.load(f)
 
-    # Flatten data for CSV (one row per annotation)
+    # Flatten data for CSV
     rows = []
     for entry in data:
         flat = {
