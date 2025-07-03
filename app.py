@@ -11,7 +11,7 @@ uploaded_image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"]
 prompt = st.text_input("Enter the text prompt for this image")
 
 questions = [
-    "Are fine details of the generated portion well defined rev test?",
+    "Are fine details of the generated portion well defined test this?",
     "Is the overall composition coherent and consistent with the prompt?",
     "Are the colors natural and well-balanced, without unnatural saturation or color bleeding",
     "Are there any objects in the image that seem out of place?",
