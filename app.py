@@ -46,7 +46,7 @@ def main():
 
             if index < len(uploaded_images) - 1:
                 st.session_state.index += 1
-                st.experimental_rerun()
+                st.rerun()
                 return  # ✅ Critical to prevent further execution
             else:
                 output_file = "annotations.json"
