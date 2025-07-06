@@ -9,6 +9,12 @@ def main():
     st.set_page_config(page_title="Multi-File Annotation Tool", layout="wide")
     st.title("🖼️ Annotate JSON-defined Prompts and Uploaded Images")
 
+    st.markdown("""
+**Instructions:**  
+Please evaluate the image based on the criteria below.  
+Use the rating scale to reflect visual accuracy, clarity, and alignment with the prompt.
+""")
+
     questions = [
         "Are fine details of the generated portion well defined?",
         "Is the overall composition coherent and consistent with the prompt?",

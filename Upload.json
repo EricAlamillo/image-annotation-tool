@@ -1,14 +1,14 @@
 [
   {
-    "image_path": "/A.png",
-    "prompt": "A dog riding a bicycle"
+    "image_path": "A.png",
+    "prompt": "a dog painting a masterpiece"
   },
    {
-    "image_path": "/B.png",
-    "prompt": "A dog riding a check"
+    "image_path": "B.png",
+    "prompt": "real cats acting on stage playing the broadway show cats"
   },
    {
-    "image_path": "/C.png",
-    "prompt": "A dog riding a check"
+    "image_path": "C.png",
+    "prompt": "two dogs sharing a candlelit dinner of spaghetti and meatballs"
   }
     ]
