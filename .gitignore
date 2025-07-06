@@ -1,3 +1,5 @@
 venv/
 __pycache__/
+*.pyc
 annotations.json
+.DS_Store
