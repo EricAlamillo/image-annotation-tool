@@ -1,6 +1,6 @@
 This is a prototype for an image annotation tool. 
 
-**Contents**
+**Contents** /
 \n .py file - working prototype
 \n .png images - sample images
 \n .json file - sample json content
